@@ -18,11 +18,16 @@
 #define RAM 0x00
 #define TEMPERATURE_SENSOR 0x07
 
+int PIN_5 = 5;
+int PIN_6 = 6;
+
 
 /* We start the arduino and start the SMBus sensors first */
 void setup(){
   Serial.begin(9600); //begin serial, 9600 baud
   Wire.begin(); //begin SMBus
+  pinMode(PIN_5, OUTPUT);
+  pinMode(PIN_6, OUTPUT);
 }
 
 /* Function to read the Infrared Sensor */
@@ -66,10 +71,16 @@ void loop(){
     case 'p':
       int PWM_Pin5;
       PWM_Pin5 = Serial.parseInt();
+      PWM_Pin5 = constrain(PWM_Pin5, 0, 255);
+      analogWrite(PIN_5, PWM_Pin5);
+      Serial.println("0");
       break;
     case 'q':
       int PWM_Pin6;
       PWM_Pin6 = Serial.parseInt();
+      PWM_Pin6 = constrain(PWM_Pin6, 0, 255);
+      analogWrite(PIN_6, PWM_Pin6);
+      Serial.println("0");
       break;
     default:
       Serial.println("Ready");
