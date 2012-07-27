@@ -68,6 +68,7 @@ void loop(){
       /*Read analog input of pin A0*/
       transducerPinVal = analogRead(transducerPin);
       Serial.println(transducerPinVal);
+      break;
     case 'h':
       Serial.println("Start Heat");
       break;
