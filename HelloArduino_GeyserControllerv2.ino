@@ -21,6 +21,11 @@
 int PIN_5 = 5;
 int PIN_6 = 6;
 
+/*These pins are for the voltage measurement from pressure transducer */
+int transducerPin = 0; /*voltage measurement between analog pin 0 and gnd */
+int transducerPinVal = 0; /*mem allocation to store the value*/
+
+
 
 /* We start the arduino and start the SMBus sensors first */
 void setup(){
@@ -59,6 +64,10 @@ void loop(){
     //We will use charecters h and c which stands
     //for hot or cold
     switch (inByte) {
+    case 'r':
+      /*Read analog input of pin A0*/
+      transducerPinVal = analogRead(transducerPin);
+      Serial.println(transducerPinVal);
     case 'h':
       Serial.println("Start Heat");
       break;
