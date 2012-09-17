@@ -15,7 +15,7 @@
 
 #we need the reactor from twisted.internet, and the protocol
 #factory for our server.
-from twisted.internet import reactor, protocol, task
+from twisted.internet import reactor, protocol, task, threads
 
 #serial port implementation
 from twisted.internet.serialport import SerialPort
@@ -25,6 +25,9 @@ from twisted.protocols.basic import LineReceiver, NetstringReceiver
 
 #this module converts our ADC voltage values to pressure
 from ConvertAtmelADCtoPressure import ADC2Pressure as A2P
+
+#This module reads the temperature from thermocouples
+import TempDaemonFPOptomux as NIcFP
 
 
 #serial port definition
@@ -120,6 +123,7 @@ class OutboundFactory(protocol.ServerFactory):
         #allocate space for temperature
         self.temperature = 0
         self.pressure = 0
+        self.NIcFPTemperature = 0
         
         #Assign a device i.e. the hardware
         self.Device = GeyserProtocol(self.AssignFromCallback)
@@ -128,12 +132,34 @@ class OutboundFactory(protocol.ServerFactory):
         self.transport = SerialPort(self.Device, SerialPortAddress, reactor, baudrate=9600)
         
         #####################
+        reactor.callWhenRunning(self.GetDataFromNIcFP)
         #Looping calls. This is here so in future we can implement a safety
         #feature, where we can "poll" the hardware to tell it that we
         #are still talking and something didnt go wrong
-        #l = task.LoopingCall(self.UpdateVariables)
-        #l.start(6.0)
+        #l = task.LoopingCall(self.GetDataFromNIcFP)
+        #l.start(2.0)
         #####################
+    
+    #this function runs the OptoMux Module (NI - cFP-TC-120) to get the temperatures
+    def GetDataFromNIcFP(self):
+        #Assign a deferred with a callback
+        OptoMuxDefer = threads.deferToThread(NIcFP.Read_TC_once)
+        OptoMuxDefer.addCallback(self.UpdateThermocouples)
+        OptoMuxDefer.addErrback(self.cFPErrback)
+    
+    #function to update the Thermocouple data
+    def UpdateThermocouples(self, data):
+        #Store the data in memory
+        self.NIcFPTemperature = data
+        #launch again for the next update!
+        reactor.callWhenRunning(self.GetDataFromNIcFP)
+    
+    def cFPErrback(self, reason):
+        #warn about the CFP module error
+        print "We have an error with the cFP Module ", repr(Reason)
+        print "Continueing data collection..."
+        reactor.callWhenRunning(self.GetDataFromNIcFP)
+    
         
     #this function assigns values from callback to memory
     def AssignFromCallback(self, data):
@@ -160,7 +186,10 @@ class OutboundFactory(protocol.ServerFactory):
         return self.pressure
     
     def SendToArduino(self, what):
-        reactor.callWhenRunning(self.Device.sendLine, str(what))        
+        reactor.callWhenRunning(self.Device.sendLine, str(what))
+        
+    def ReadcFP(self, input_part_2):
+        return self.NIcFPTemperature
 
     
 reactor.listenTCP(44444, OutboundFactory(SerialPortAddress, reactor))

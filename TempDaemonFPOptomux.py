@@ -53,7 +53,7 @@ def Read_TC(TempDataInStream, DaemonRunFlag, DeviceID):
                 
     ##Note: I did not put time.sleep. its not needed, the ADC cant work faster than 1Hz.
     
-def Read_TC_once(DeviceID):
+def Read_TC_once(DeviceID = "0004"):
     #open serial
     device = serial.Serial(port='/dev/ttyS2',baudrate=115200, bytesize = 8, timeout = 1, rtscts=False)
     #construct the command to send
@@ -75,5 +75,6 @@ def Read_TC_once(DeviceID):
         device.read(4)
         temperature_celcius = 0.0
         #put this to the queue
-    return temperature_celcius
+    temperature_celcius_return = "%.02f" %temperature_celcius
+    return temperature_celcius_return
     

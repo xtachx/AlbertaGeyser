@@ -27,6 +27,10 @@ def getTemperature():
 def getPressure():
     return geyserCMD("CurrentPressure.0")
 
+def getcFP():
+    return geyserCMD("ReadcFP.0")
+
+
 #We expect the heating controls to be a value between 1 and 100
 #like a scale of output heat. So, assuming that, we will go forward
 def HeaterControl(set_heating_value):
@@ -35,4 +39,5 @@ def HeaterControl(set_heating_value):
     #now form the send command!
     send_command = send_command_prefix+"q"+str(pwm_heating)
     geyserCMD(send_command, expectreply = False)
+
 
