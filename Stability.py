@@ -9,8 +9,7 @@
 #Released under GNU GPL                                         #
 #################################################################
 
-import Queue, time, csv
-import matplotlib.pyplot as plt
+
 import numpy
 
 
@@ -35,6 +34,8 @@ class CheckStablity():
         self._SuspectAnomaly = False
  
     def DetectEventAndAnomaly(self,leadAVG, trailAVG):
+        leadAVG = float(leadAVG)
+        trailAVG = float(trailAVG)
  
         _cursor = leadAVG-trailAVG
 
@@ -43,7 +44,7 @@ class CheckStablity():
             self.AnomalyProbability = 0.1
             self.EventProbability = 0.1
             self._InvestigateFlag = True
-            print "Investigation Begin at (plot 2): "
+            print "Investigation Begin: "
         if self._InvestigateFlag == True:
             self._EventTimeTracker+=1
             if _cursor >= 0.25:

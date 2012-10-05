@@ -8,10 +8,6 @@ import MySQLdb as mdb
 #need this for "sleep"
 import time
 
-#and need this to write some dirty CSV
-import csv
-PressureVoltageWriter = csv.writer(open('PV_Transducer.csv', 'wb'), delimiter=',')
-
 def SystemStateDictionary(SystemState):
     state = ""
     if SystemState == "c":
@@ -22,11 +18,13 @@ def SystemStateDictionary(SystemState):
         return "stable"
     elif SystemState == "u":
         return "unstable"
+    elif SystemState == "n":
+        return "not implemented"
     else:
         return "unknown" 
 #The first part will update the database with the present vars
 #so that we can post a real-time status on our control scirpt
-def Update_DB(processvalue, SystemState, Voltage):
+def Update_DB(processvalue, Pressure, SystemState="n"):
     #connect to db
     db = mdb.connect('localhost', 'AutoGeyser', 'spaceball-geyser', 'AutoGeyser');
     #set cursor
@@ -38,14 +36,15 @@ def Update_DB(processvalue, SystemState, Voltage):
     #update state    
     statement2 = "UPDATE AutoGeyser.PresentVectors SET state=\"%s\" WHERE PresentVectors.IDX =1;" %SystemState
     cur.execute(statement2)
+    #update pressure
+    statement3 = "UPDATE AutoGeyser.PresentVectors SET Pressure=\"%s\" WHERE PresentVectors.IDX =1;" %Pressure
+    cur.execute(statement3)
     #update the temperature table
-    statement3 = "INSERT INTO `AutoGeyser`.`_GeyserRunTemperature` (`IDX` ,`Temperature`)VALUES (NULL , %.2f);" %processvalue
-    cur.execute(statement3)
+    statement4 = "INSERT INTO `AutoGeyser`.`_GeyserRunTemperature` (`IDX` ,`Temperature`)VALUES (NULL , %.2f);" %processvalue
+    cur.execute(statement4)
     #update pressure table
-    statement3 = "INSERT INTO `AutoGeyser`.`_GeyserPressureVoltage` (`IDX` ,`Voltage`)VALUES (NULL , %.3f);" %Voltage
-    cur.execute(statement3)
-    ################DIRTY CODE######################
-    PressureVoltageWriter.writerow([Voltage])
+    statement5 = "INSERT INTO `AutoGeyser`.`_GeyserPressureVoltage` (`IDX` ,`Pressure`)VALUES (NULL , %.3f);" %Voltage
+    cur.execute(statement5)
     #commit database
     db.commit()
     #close connection

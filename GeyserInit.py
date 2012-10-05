@@ -11,8 +11,7 @@
 from multiprocessing import Process, Queue, Value, Array
 import time, sys, os
 import ArduinoDaemon
-import StateMachine
-import UpdateVars
+import StateMachineINO as StateMachine
 import ClearTempTableSQL
 
 TempDataInStream = Queue()

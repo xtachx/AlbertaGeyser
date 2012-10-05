@@ -8,6 +8,7 @@ import GeyserProto as GP
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
+import gPID
 
 
 
@@ -145,8 +146,21 @@ def ZeiglerNichols():
     x_range = xrange(0,100)
     while True:
         calib_status = calibrate_PID.RUNCalib()
+
+def runGPID():
+    gPIDInstance = gPID.gPID()
+    gPIDInstance.ChangeSetPoint(40.0)
+    while True:
+        getCFPval = float(GP.getcFP())
+        next_PV = gPIDInstance.Compute(getCFPval)
+        print "Present Temp: "+ str(getCFPval) + "| nextPV: "+str(next_PV)
+        GP.HeaterControl(next_PV)
+        time.sleep(1)
     
-ZeiglerNichols()  
+runGPID()    
+#ZeiglerNichols()
+
+
 
 #while True:
 #    pid = pid_control.update(measurement_value)

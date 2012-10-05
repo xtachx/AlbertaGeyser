@@ -25,10 +25,10 @@ def getTemperature():
     return geyserCMD("CurrentTemperature.0")
 
 def getPressure():
-    return geyserCMD("CurrentPressure.0")
+    return float(geyserCMD("CurrentPressure.0"))
 
 def getcFP():
-    return geyserCMD("ReadcFP.0")
+    return float(geyserCMD("ReadcFP.0"))
 
 
 #We expect the heating controls to be a value between 1 and 100
