@@ -25,16 +25,15 @@ class gPID():
         self.SampleTime = 1.0
         self.lastTime = time.time()
         #This is the data we need, but we can start with an initial guess
-        self.kp = 1.176   #Proportional constant Kp
-        self.ki = 0.0033  #Integral Gain Kp/Ti
-        self.kd = 102.9   #Derivative Gain Kp*Td
+        self.kp = 1.576   #Proportional constant Kp
+        self.ki = 0.033  #Integral Gain Kp/Ti
+        self.kd = 30.29   #Derivative Gain Kp*Td
         
         self.outMin = 0.0
         self.outMax = 100.0
         #this is what we generate
         self.Output = 0.0 
         #and this is what we use during our computation
-        self.errSum = 0.0
         self.lastInput = 0.0
         self.ITerm = 0.0
         self.inAuto = True
@@ -43,6 +42,29 @@ class gPID():
         self._AUTOMATIC = 1
         self.isInitialized = False
         
+        #To prevent integral windup, we need this
+        self.Integral = []
+        self.IntegralHisterisis = 10
+        self.IntegralLimit = [-63, 63]
+    
+    def UpdateIntegral(self, data):
+        data = float(data)
+        if (len(self.Integral)) < self.IntegralHisterisis:
+            self.Integral.append(data)
+        if (len(self.Integral) >=self.IntegralHisterisis):
+            self.Integral.append(data)
+            self.Integral.pop(0)
+        
+        return sum(self.Integral)
+        
+        #if sum(self.Integral) >= self.IntegralLimit[1]:
+        #    return self.IntegralLimit[1]
+        #elif sum(self.Integral) <= self.IntegralLimit[0]:
+        #    return self.IntegralLimit[1]
+        #else:
+        #    return sum(self.Integral)
+    
+    
         
         
         
@@ -65,9 +87,8 @@ class gPID():
         if(timeDelta >=self.SampleTime):
             #Compute the error, and update sum:
             error = self.SetPoint - Input
-            self.errSum += (error*timeDelta)
-            
-            self.ITerm += (self.ki*self.errSum)
+            errSum = error*timeDelta
+            self.ITerm = self.UpdateIntegral(self.ki*errSum)
             
             
             if self.ITerm > self.outMax:
@@ -78,7 +99,6 @@ class gPID():
             dInput = Input - self.lastInput
             #Compute PID Output
             self.Output = self.kp*error + self.ITerm - self.kd*dInput
-            
             if self.Output > self.outMax:
                 self.Output = self.outMax
             elif self.Output<self.outMin:

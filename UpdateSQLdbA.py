@@ -23,6 +23,7 @@
 
 # Using the "mysqldb" module, create a ConnectionPool.
 from twisted.enterprise import adbapi
+from twisted.internet import defer
 dbpool = adbapi.ConnectionPool("MySQLdb", 'localhost', 'AutoGeyser', 'spaceball-geyser')
 
 
@@ -41,12 +42,14 @@ class DataRecorder():
     #then create a new table for a new run, and set the present run number
     #use this to reset the run number / start new run
     def makeNewRun(self, targetTemperature):
+        setInitial = defer.Deferred()
         self.setTemperature = float(targetTemperature)
         setInitial = self.GetInitialRunNumber()
         setInitial.addCallback(self.SetRunNumber, SQLMode=True)
         setInitial.addCallback(self.MakeTable)
         setInitial.addCallback(self.UpdateRunNumber)
         setInitial.addErrback(self.PrintDebug)
+        return setInitial
     
     #Function to get the last run number
     def GetInitialRunNumber(self):
@@ -58,16 +61,16 @@ class DataRecorder():
     def UpdateRunNumber(self, runNumber):
         RunNumberUpdate_qry = "INSERT INTO AutoGeyser.RunHistory(`RunNumber` ,`DateTime`, `TargetTemperature`)VALUES (NULL , NULL, %f);" %self.setTemperature
         dbpool.runOperation(RunNumberUpdate_qry)
+        return self.runNumber
+        
         
         
     #CAUTION!! YOU WILL OVERRIDE SHIT IF NOT CAREFUL!!#
     #Override the run number. DO NOT USE DIRECTLY! #
     def SetRunNumber(self, number, SQLMode = False):
         if SQLMode:
-            print "SQL MODE"
             number = number[0][0]
         self.runNumber = number+1
-        print "RunNumber set as: " + str(self.runNumber)
     
     
     #now, we code a program to gcreate a new data storage table
@@ -79,7 +82,7 @@ class DataRecorder():
                         pressure FLOAT,
                         cur_timestamp TIMESTAMP DEFAULT NOW() );""" %self.runNumber
         result = dbpool.runOperation(RunRec_Qry)
-        return None
+        #return None
     
     #Funtion to update the datapoint we are working on.
     def UpdateDatapoint(self, temperature, pressure):
@@ -123,6 +126,18 @@ def _AGetInterrupt(txn):
     else:
         return None
 
+def _OGetInterrupt(txn):
+    ONOFF_Interrupt_qry = "SELECT isRunning FROM AutoGeyser.TemperatureControl WHERE TemperatureControl.IDX =1;"
+    txn.execute(ONOFF_Interrupt_qry)
+    result = txn.fetchall()
+    if result:
+        return result[0][0]
+    else:
+        return None
+
+def OGetUserInterrupt():
+    return dbpool.runInteraction(_OGetInterrupt)
+
 def CleanTables():
     statement_temp = "TRUNCATE TABLE AutoGeyser.`_GeyserRunTemperature` "
     statement_pressure = "TRUNCATE TABLE AutoGeyser.`_GeyserPressurePSI` "
@@ -137,13 +152,4 @@ def AGetUserInterrupt():
     return dbpool.runInteraction(_AGetInterrupt)
     #Run with
     #AGetUserInterrupt().addCallback(callback)
-
-
-#if __name__ == "__main__":
-#    #Example Demo
-#    from twisted.internet import reactor
-#    a = DataRecorder()
-#    reactor.callWhenRunning(a.makeNewRun, 60.0)
-#    a.UpdateDatapoint(23.4,2.3)
-#    reactor.run()
 
