@@ -68,21 +68,32 @@ class GeyserEvent():
         AuSQL.CleanTables()
         self.dataRecorder = AuSQL.DataRecorder()
         ####
-        
+        self._isRunning = False
+        runDispatcher = task.LoopingCall(self.UpdateDispatcher)
+        runDispatcher.start(1.0)
         ####
         
         ####RunDataRecorder Params####
         RunNumber = 0
     
     def UpdateDispatcher(self):
+        reactor.callWhenRunning(self.SQLInterrupts)
         if self._isRunning == True:
-            l = task.LoopingCall(self.UpdateVars)
-            l.start(1.0)
-            m = task.LoopingCall(self.SQLInterrupts)
-            m.start(1.0)
+            reactor.callWhenRunning(self.UpdateVars)
+            reactor.callWhenRunning(self.dataRecorder.UpdateDatapoint, self.LeadAvg, self.Pressure)
+        
+    
+    def changeRun(self):
+        self._isRunning = False
+        onSetTable = self.dataRecorder.makeNewRun(self.setPoint)
+        onSetTable.addCallback(self.setRunNumberandStart)
+
             
-    def setRunNumber(runList):
-        return int(runList[:-1])
+    def setRunNumberandStart(self, RunNumber):
+        print "Set new run number success; Run# "+ str(RunNumber)+" is now live!"
+        self.RunNumber = RunNumber
+        self._isRunning = True
+        return None
     
     BoxCarSize = lambda self : 2*self.step + self.interval
     
@@ -127,11 +138,23 @@ class GeyserEvent():
         if NewSP != self.setPoint:
             self.gPID.ChangeSetPoint(NewSP)
             self.setPoint = NewSP
-            print "Set Point Changed"
+            print "Set Point Changed, new run started!"
+            #self.changeRun()
+    
+    def ONOFFCallback(self, new_instruction):
+        NewInstruction = bool(new_instruction)
+        if NewInstruction != self._isRunning:
+            if NewInstruction == False:
+                self.setPoint = 0.0
+                self.UpdateVars()
+            self._isRunning = NewInstruction
+            print "Detector status has been toggled. Starting new run...!"
+            self.changeRun()
 
     def SQLInterrupts(self):
         AuSQL.AUpdateSQLPool(self.LeadAvg, self.Pressure)
         AuSQL.AGetUserInterrupt().addCallback(self.SetPointInterruptCallback)
+        AuSQL.OGetUserInterrupt().addCallback(self.ONOFFCallback)
         
         
 GeyserEventDispacher = GeyserEvent()
