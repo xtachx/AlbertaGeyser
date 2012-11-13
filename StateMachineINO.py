@@ -138,7 +138,7 @@ class GeyserEvent():
         if NewSP != self.setPoint:
             self.gPID.ChangeSetPoint(NewSP)
             self.setPoint = NewSP
-            print "Set Point Changed, new run started!"
+            print "Set Point Changed, new run started by SetPointChange!"
             #self.changeRun()
     
     def ONOFFCallback(self, new_instruction):
@@ -148,8 +148,9 @@ class GeyserEvent():
                 self.setPoint = 0.0
                 self.UpdateVars()
             self._isRunning = NewInstruction
-            print "Detector status has been toggled. Starting new run...!"
-            self.changeRun()
+            print "Detector status has been toggled. New run started by OGetInterrupt...!"
+            if NewInstruction == True:
+                self.changeRun()
 
     def SQLInterrupts(self):
         AuSQL.AUpdateSQLPool(self.LeadAvg, self.Pressure)
