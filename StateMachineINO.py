@@ -55,7 +55,7 @@ class GeyserEvent():
         self.TrailAvg = 0.0
         self.TemperatureData = []
         self.Pressure = 0.0
-        
+        self.PIDVal = 0
         self.gPID = gPID()
         
         #####
@@ -70,17 +70,27 @@ class GeyserEvent():
         ####
         self._isRunning = False
         runDispatcher = task.LoopingCall(self.UpdateDispatcher)
-        runDispatcher.start(1.0)
+        runDispatcher.start(0.1)
+        ####
+        procDispatcher = task.LoopingCall(self.ProcessDispatcher)
+        procDispatcher.start(1)
         ####
         
         ####RunDataRecorder Params####
         RunNumber = 0
     
+    def ProcessDispatcher(self):
+        if self._isRunning == True:
+            reactor.callWhenRunning(self.UpdateVars)
+        
     def UpdateDispatcher(self):
         reactor.callWhenRunning(self.SQLInterrupts)
         if self._isRunning == True:
-            reactor.callWhenRunning(self.UpdateVars)
+            #reactor.callWhenRunning(self.UpdateVars)
+            self.Pressure = GP.getPressure()
             reactor.callWhenRunning(self.dataRecorder.UpdateDatapoint, self.LeadAvg, self.Pressure)
+            sys.stdout.flush()
+            sys.stdout.write("\rTemperature: %.02f | PID: %.01f | Pressure: %.01f" % (self.LeadAvg, self.PIDVal, self.Pressure))
         
     
     def changeRun(self):
@@ -119,16 +129,17 @@ class GeyserEvent():
         self.TrailAvg = np.average(self.TemperatureData[:self.step])
         self.LeadAvg = np.average(self.TemperatureData[-self.step:])
         #Update Pressure Variable
-        self.Pressure = GP.getPressure()
+        #self.Pressure = GP.getPressure()
         #Call stability check
         
         reactor.callWhenRunning(self.StabilityWrapper)
         #get PID Value
         PIDValue = self.gPID.Compute(float(self.LeadAvg))
-        #write PID Value
-        GP.HeaterControl(PIDValue)
-        sys.stdout.flush()
-        sys.stdout.write("\rTemperature: %.02f | PID: %.01f | Pressure: %.01f" % (self.LeadAvg, PIDValue, self.Pressure))
+        if int(PIDValue) != int(self.PIDVal) :
+            #write PID Value
+            GP.HeaterControl(PIDValue)
+            self.PIDVal = PIDValue
+        
     
     def Initialize(self):
         self.TemperatureData += [float(GP.getcFP())] * self.BoxCarSize()
