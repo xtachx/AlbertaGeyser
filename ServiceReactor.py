@@ -129,7 +129,7 @@ class OutboundFactory(protocol.ServerFactory):
         self.Device = GeyserProtocol(self.AssignFromCallback)
         
         #assign a transport to the hardware i.e. serial
-        self.transport = SerialPort(self.Device, SerialPortAddress, reactor, baudrate=9600)
+        self.transport = SerialPort(self.Device, SerialPortAddress, reactor, baudrate=115200)
         
         #####################
         reactor.callWhenRunning(self.GetDataFromNIcFP)
