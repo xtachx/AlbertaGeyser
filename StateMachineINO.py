@@ -75,6 +75,7 @@ class GeyserEvent():
         procDispatcher = task.LoopingCall(self.ProcessDispatcher)
         procDispatcher.start(1)
         ####
+        self.writeHalt = False
         
         ####RunDataRecorder Params####
         RunNumber = 0
@@ -135,6 +136,7 @@ class GeyserEvent():
         reactor.callWhenRunning(self.StabilityWrapper)
         #get PID Value
         PIDValue = self.gPID.Compute(float(self.LeadAvg))
+        
         if int(PIDValue) != int(self.PIDVal) :
             #write PID Value
             GP.HeaterControl(PIDValue)
